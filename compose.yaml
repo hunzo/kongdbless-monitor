@@ -1,0 +1,54 @@
+services:
+  kong:
+    image: kong:${TAG-latest}
+    container_name: kong-dbless
+    env_file:
+      - kong.env
+    volumes:
+      - ./kong.yaml:/config/kong.yaml
+    networks:
+      - kong
+    ports:
+      - 127.0.0.1:8001:8001
+      - 127.0.0.1:8444:8444
+      - 8000:8000
+      - 8443:8443
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: always
+    networks:
+      - kong
+  node_exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - 9100:9100
+    container_name: node_exporter
+    restart: always
+    networks:
+      - kong
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    container_name: grafana
+    restart: always
+    environment:
+      GF_INSTALL_PLUGINS: grafana-clock-panel, grafana-simple-json-datasource
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin1234
+    networks:
+      - kong
+networks:
+  kong:

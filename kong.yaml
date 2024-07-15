@@ -1,0 +1,62 @@
+_format_version: "2.1"
+services:
+  - name: my-api-server
+    url: http://httpbin.org/anything
+    routes:
+      - name: api-requests
+        service: my-api-server
+        paths:
+          - /api
+    plugins:
+      - name: jwt
+        service: my-api-server
+        enabled: false
+        config:
+          key_claim_name: kid
+          claims_to_verify:
+            - exp
+  # enable plugin on service
+  - name: my-key-auth
+    url: https://jsonplaceholder.typicode.com/posts
+    plugins:
+      - name: key-auth
+        service: my-key-auth
+        config:
+          key_names:
+            - apikeyservice
+    routes:
+      - name: my-key-auth-router
+        service: my-key-auth
+        paths:
+          - /servicekeyauth
+  - name: my-keyauth-route
+    url: https://jsonplaceholder.typicode.com/users
+    # enable plugin on route
+    routes:
+      - name: keyauth-route
+        service: my-keyauth-route
+        paths:
+          - /routekeyauth
+    plugins:
+      - name: key-auth
+        route: keyauth-route
+        config:
+          key_names:
+            - apikeyroute
+consumers:
+  - username: login_server_issuer
+    jwt_secrets:
+      - consumer: login_server_issuer
+        secret: jwtsecret
+  - username: login_key_auth
+    keyauth_credentials:
+      - key: mykey1
+      - key: mykey2
+plugins:
+  - name: prometheus
+    config:
+      per_consumer: false
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
